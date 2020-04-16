@@ -18,6 +18,9 @@ import com.hibernate.models.mappingInheritance.singleTable.CreditCardSingle;
 import com.hibernate.models.mappingInheritance.tablePerClass.BankAccountUnion;
 import com.hibernate.models.mappingInheritance.tablePerClass.BillingDetailsUnion;
 import com.hibernate.models.mappingInheritance.tablePerClass.CreditCardUnion;
+import com.hibernate.models.persistenceUtil.House;
+import com.hibernate.models.proxy.entity.PostCommentProxy;
+import com.hibernate.models.proxy.entity.PostProxy;
 import com.hibernate.models.relationship.manyToOne.PostComment_ManyToOne;
 import com.hibernate.models.relationship.manyToOne.Post_ManyToOne;
 import com.hibernate.models.relationship.manyToOne.bi.PostComment_ManyToOne_bi;
@@ -27,12 +30,9 @@ import com.hibernate.models.relationship.oneToMany.unidirectional.Post_OneToMany
 import com.hibernate.models.relationship.oneToMany.unidirectional.join.PostComment_OneToMany_join;
 import com.hibernate.models.relationship.oneToMany.unidirectional.join.Post_OneToMany_join;
 import lombok.extern.java.Log;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
+import javax.persistence.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,15 +42,37 @@ import java.util.Set;
 @Log
 public class DAO {
 
-    @Autowired
+    @PersistenceUnit
     private EntityManagerFactory emf;
+
 
     public void save_relationships() {
 //        undirectionalManyToOne();
 //        bidirectionalmanyToOne();
 //        deletebidirectionalmanyToOne();
 //        saveOneToMany();
+//        saveOneToManyJoin();
 
+//        simple_get_proxy();
+    }
+
+    private void simple_get_proxy() {
+        PersistenceUnitUtil util = emf.getPersistenceUnitUtil();
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        House house = new House(7L, "Maciej");
+        util.isLoaded(house);
+
+        em.persist(house);
+        tx.commit();
+
+        House houseRef = em.getReference(House.class, 7L);
+        em.close();
+    }
+
+    private void saveOneToManyJoin() {
         EntityManager em = emf.createEntityManager();
         EntityTransaction tx = em.getTransaction();
         tx.begin();
@@ -263,6 +285,56 @@ public class DAO {
 
         em.persist(message);
         tx.commit();
+        em.close();
+    }
+
+    public void proxy() {
+//        persistence_contexts_as_first_cache();
+
+        EntityManager em = emf.createEntityManager();
+        PersistenceUnitUtil util = emf.getPersistenceUnitUtil();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+
+        tx.commit();
+        em.close();
+    }
+
+    private void persistence_contexts_as_first_cache() {
+        EntityManager em = emf.createEntityManager();
+        PersistenceUnitUtil util = emf.getPersistenceUnitUtil();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        // Now Persistance Context is empty
+        log.info("Find item - inject in persistence context");
+        em.find(PostProxy.class, 1L); // get data from DB, nd add them in Persistance Context
+        log.info("End find. SQL query should be between logs");
+
+        // Now Persistance Context has one element
+
+
+//        PostProxy post = em.find(PostProxy.class, 1L); -> uderza do bazy
+        PostProxy post = em.getReference(PostProxy.class, 1L);
+        log.info("Get id: " + post.getId());
+
+        PostCommentProxy comment = new PostCommentProxy();
+        comment.setReview("Maciej");
+        comment.setPost(post);
+        log.info("Print comment: " + comment.toString());
+
+        em.persist(comment);
+        tx.commit();
+
+        em.clear(); // clear PC -> we fit to DB again
+        log.info("After flush!");
+        tx.begin();
+        log.info("Get referance in new transaction");
+        PostProxy postInNewTrans = em.getReference(PostProxy.class, 1L);
+        System.out.println(postInNewTrans);
+        tx.commit();
+
         em.close();
     }
 }
