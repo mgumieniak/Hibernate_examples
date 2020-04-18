@@ -19,8 +19,9 @@ import com.hibernate.models.mappingInheritance.tablePerClass.BankAccountUnion;
 import com.hibernate.models.mappingInheritance.tablePerClass.BillingDetailsUnion;
 import com.hibernate.models.mappingInheritance.tablePerClass.CreditCardUnion;
 import com.hibernate.models.persistenceUtil.House;
-import com.hibernate.models.proxy.entity.PostCommentProxy;
-import com.hibernate.models.proxy.entity.PostProxy;
+import com.hibernate.models.proxy.collection.PostComment_lazy_proxy_collection;
+import com.hibernate.models.proxy.collection.Post_lazy_proxy_collection;
+import com.hibernate.models.proxy.entity.*;
 import com.hibernate.models.relationship.manyToOne.PostComment_ManyToOne;
 import com.hibernate.models.relationship.manyToOne.Post_ManyToOne;
 import com.hibernate.models.relationship.manyToOne.bi.PostComment_ManyToOne_bi;
@@ -33,10 +34,8 @@ import lombok.extern.java.Log;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.util.*;
 
 @Service
 @Log
@@ -290,12 +289,137 @@ public class DAO {
 
     public void proxy() {
 //        persistence_contexts_as_first_cache();
+//        save_data_lazy_collections();
 
+//        get_lazy_collection();
+
+        // book
+//        save_data_lazy_collections_book();
+        fetchProxyBatches();
+
+    }
+
+    private void fetchProxyBatches() {
         EntityManager em = emf.createEntityManager();
-        PersistenceUnitUtil util = emf.getPersistenceUnitUtil();
         EntityTransaction tx = em.getTransaction();
         tx.begin();
 
+        List<Item_proxy> items = em.createQuery("select i from Item_proxy i").getResultList();
+        System.out.println("@ManyToOne Batch :");
+        for (Item_proxy item : items) {
+            System.out.println(item.getSeller().getUsername());
+            // select * from USERS where ID in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        }
+
+        System.out.println("Set<Bid> :");
+        for (Item_proxy item : items) {
+            System.out.println(item.getBids());
+            // select * from BID where ITEM_ID in (?, ?, ?, ?, ?)
+        }
+
+        tx.commit();
+        em.close();
+    }
+
+    private void get_lazy_collection() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        log.info("Clear the second-level cache");
+//        em.getEntityManagerFactory().getCache().evictAll();
+
+        log.info("Loading a Post");
+        Post_lazy_proxy_collection comment = em.find(
+                Post_lazy_proxy_collection.class,
+                1L
+        );
+
+
+        log.info("Loading PostComments");
+        for (PostComment_lazy_proxy_collection postComment : comment.getComments()) {
+            log.info("Review ID: " + postComment.getId());
+        }
+
+        tx.commit();
+        em.close();
+    }
+
+    private void save_data_lazy_collections() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        PostComment_lazy_proxy_collection postComment1 = new PostComment_lazy_proxy_collection()
+                .setId(1L)
+                .setReview("Angelika");
+
+        PostComment_lazy_proxy_collection postComment2 = new PostComment_lazy_proxy_collection()
+                .setId(2L)
+                .setReview("Maciej");
+
+        Post_lazy_proxy_collection post = new Post_lazy_proxy_collection()
+                .setId(1L)
+                .setTitle("LOTR");
+
+
+        post.addComment(postComment1);
+        post.addComment(postComment2);
+
+        em.persist(post);
+        em.persist(postComment1);
+        em.persist(postComment2);
+
+        tx.commit();
+        em.close();
+    }
+
+    private void save_data_lazy_collections_book() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        Long[] itemIds = new Long[3];
+        Long[] userIds = new Long[3];
+
+        User_proxy johndoe = new User_proxy("johndoe");
+        em.persist(johndoe);
+        userIds[0] = johndoe.getId();
+
+        User_proxy janeroe = new User_proxy("janeroe");
+        em.persist(janeroe);
+        userIds[1] = janeroe.getId();
+
+        User_proxy robertdoe = new User_proxy("robertdoe");
+        em.persist(robertdoe);
+        userIds[2] = robertdoe.getId();
+
+        Item_proxy item = new Item_proxy("Item One", new Date(), johndoe);
+        em.persist(item);
+        itemIds[0] = item.getId();
+        for (int i = 1; i <= 3; i++) {
+            Bid_proxy bid = new Bid_proxy(item, robertdoe, new BigDecimal(9 + i));
+            item.getBids().add(bid);
+            em.persist(bid);
+        }
+
+        item = new Item_proxy("Item Two", new Date(), johndoe);
+        em.persist(item);
+        itemIds[1] = item.getId();
+        for (int i = 1; i <= 1; i++) {
+            Bid_proxy bid = new Bid_proxy(item, janeroe, new BigDecimal(2 + i));
+            item.getBids().add(bid);
+            em.persist(bid);
+        }
+
+        item = new Item_proxy("Item Three", new Date(), janeroe);
+        em.persist(item);
+        itemIds[2] = item.getId();
+        for (int i = 1; i <= 1; i++) {
+            Bid_proxy bid = new Bid_proxy(item, johndoe, new BigDecimal(3 + i));
+            item.getBids().add(bid);
+            em.persist(bid);
+        }
 
         tx.commit();
         em.close();

@@ -21,7 +21,7 @@ public class Controller {
         dao.save_relationships();
         dao.proxy();
 
-        test_persistance_contaext_range_in_spring();
+//        test_persistance_contaext_range_in_spring();
     }
 
     private void test_persistance_contaext_range_in_spring() {
