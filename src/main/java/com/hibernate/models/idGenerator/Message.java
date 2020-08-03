@@ -15,12 +15,12 @@ public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "pooled")
     @GenericGenerator(
-            name = "pooled",
+            name = "ID_GENERATOR_POOLED",
             strategy = "org.hibernate.id.enhanced.SequenceStyleGenerator",
             parameters = {
-                    @Parameter(name = "sequence_name", value = "sequence"),
-                    @Parameter(name = "increment_size", value = "3"),
-                    @Parameter(name = "optimizer", value = "pooled")
+                    @Parameter(name = "sequence_name", value = "JPWH_SEQUENCE"),
+                    @Parameter(name = "increment_size", value = "10"),
+                    @Parameter(name = "optimizer", value = "pooled-lo")
             }
     )
     private Long id;

@@ -1,6 +1,6 @@
 package com.hibernate;
 
-import com.hibernate.dao.SpringDao;
+import com.hibernate.springDao.SpringDao;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,6 +20,7 @@ public class Controller {
         dao.save();
         dao.save_relationships();
         dao.proxy();
+        dao.fetch();
 
 //        test_persistance_contaext_range_in_spring();
     }

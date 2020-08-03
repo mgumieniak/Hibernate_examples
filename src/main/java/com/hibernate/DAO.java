@@ -1,14 +1,16 @@
 package com.hibernate;
 
+import com.hibernate.Fetch.model.PostComment_Fetch;
 import com.hibernate.models.columnTransformer.Customer;
 import com.hibernate.models.converter.Address;
 import com.hibernate.models.converter.GermanZipcode;
 import com.hibernate.models.converter.UserZipCode;
 import com.hibernate.models.idGenerator.Message;
 import com.hibernate.models.immutable.Info;
+import com.hibernate.models.mappingCollections.Employee_fetch_lazy_collection;
 import com.hibernate.models.mappingCollections.Image;
-import com.hibernate.models.mappingCollections.ItemSet;
 import com.hibernate.models.mappingCollections.ItemSetComponents;
+import com.hibernate.models.mappingCollections.Phone_lazy_collections;
 import com.hibernate.models.mappingInheritance.implicitPolymorphism.BankAccount;
 import com.hibernate.models.mappingInheritance.implicitPolymorphism.BillingDetails;
 import com.hibernate.models.mappingInheritance.implicitPolymorphism.CreditCard;
@@ -162,7 +164,7 @@ public class DAO {
 //        implicitPolymorphism();
 //        tablePerClass();
 //        inheritanceSingleTable();
-//        mappingSet();
+        mappingSet();
 //        mappingSetComponent();
 
     }
@@ -188,13 +190,27 @@ public class DAO {
         EntityTransaction tx = em.getTransaction();
         tx.begin();
 
-        ItemSet item = new ItemSet();
-        item.setImages(Collections.singleton("Angelika"));
+        Employee_fetch_lazy_collection employee =
+                new Employee_fetch_lazy_collection("mac",
+                        Collections.singletonList(new Phone_lazy_collections(
+                                "type", "asd", "tak")));
 
-        em.persist(item);
+        em.persist(employee);
 
         tx.commit();
         em.close();
+
+        em = emf.createEntityManager();
+        tx = em.getTransaction();
+        tx.begin();
+
+        Employee_fetch_lazy_collection employee2 = em.find(Employee_fetch_lazy_collection.class,51L);
+
+        tx.commit();
+        em.close();
+
+        System.out.println();
+        System.out.println(employee2.getPhones());
     }
 
     private void inheritanceSingleTable() {
@@ -295,7 +311,7 @@ public class DAO {
 
         // book
 //        save_data_lazy_collections_book();
-        fetchProxyBatches();
+//        fetchProxyBatches();
 
     }
 
@@ -461,4 +477,68 @@ public class DAO {
 
         em.close();
     }
+
+    public void fetch() {
+//        save_postcomment_fetch();
+
+//        dtoProjection();
+
+//        update_one_postComment_fetch();
+    }
+
+    private void update_one_postComment_fetch() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        PostComment_Fetch postComment = em.find(PostComment_Fetch.class, 43L);
+        postComment.setReview("Pan Marcin");
+
+        tx.commit();
+        em.close();
+    }
+
+    private void dtoProjection() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        List<PostComment_Fetch> summaries = em.createQuery("""
+                select new
+                PostComment_Fetch(
+                    p.title, p.review )
+                    from PostComment_Fetch p
+                order by p.id""", PostComment_Fetch.class)
+                .setFirstResult(1)
+                .setMaxResults(2)
+                .getResultList();
+        System.out.println(summaries);
+
+//        INSERT -> zamiast wykonać update zostanie wstawiony nowe entity
+//        summaries.get(0).setReview("Pan Marcin");
+//        em.persist(summaries.get(0));
+
+        tx.commit();
+        em.close();
+    }
+
+    private void save_postcomment_fetch() {
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        PostComment_Fetch postComment = new PostComment_Fetch("Władca Pierscieni", "Maciej");
+        PostComment_Fetch postComment2 = new PostComment_Fetch("Władca Pierscieni 2", "Angelika");
+        PostComment_Fetch postComment3 = new PostComment_Fetch("Władca Pierscieni 3", "Grazyna");
+        List<PostComment_Fetch> posts = List.of(postComment, postComment2, postComment3);
+
+        for (PostComment_Fetch post : posts) {
+            em.persist(post);
+        }
+
+        tx.commit();
+        em.close();
+    }
+
+
 }

@@ -1,4 +1,4 @@
-package com.hibernate.dao;
+package com.hibernate.springDao;
 
 import com.hibernate.models.proxy.entity.PostProxy;
 import lombok.extern.java.Log;
